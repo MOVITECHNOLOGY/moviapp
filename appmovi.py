@@ -1,5 +1,8 @@
 import streamlit as st
 import requests
+# Configuración de MOVI
+st.set_page_config(page_title="MOVI - Validador", page_icon="📦")
+st.title("📦 MOVI: Control de Devoluciones")
 st.title("📦 MOVI: Control de Devoluciones")
 
 # 1. LA CÁMARA (Ahora arriba para que cargue rápido)
@@ -16,9 +19,6 @@ if foto_factura or nro_factura:
     
     st.info(f"Buscando datos en BoxHero...")
 
-# Configuración de MOVI
-st.set_page_config(page_title="MOVI - Validador", page_icon="📦")
-st.title("📦 MOVI: Control de Devoluciones")
 
 # --- ESTA ES LA PARTE IMPORTANTE ---
 # Borra TU_TOKEN_AQUI (pero deja las comillas) y pega tu Token de BoxHero
@@ -35,6 +35,7 @@ BASE_URL = "https://api.boxhero.io/v1"
         # Aquí es donde el programa hace la magia de comparar cantidades
         st.warning(f"Validando {scanned_code}... Espere un momento.")
         # El resto del código de validación lo agregaremos cuando veas que este abre bien.
+
 
 
 

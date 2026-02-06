@@ -5,7 +5,7 @@ import requests
 st.set_page_config(page_title="MOVI - Validador", page_icon="📦")
 st.title("📦 MOVI: Verificador de Folios")
 
-# 2. Credenciales (Token confirmado)
+# 2. Credenciales (Token confirmado en tu foto)
 TOKEN = "7af32261-1ee8-4d53-b1b5-77afb233d446"
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
@@ -18,43 +18,40 @@ nro_folio = st.text_input("Ingresa el Folio de la salida (ej: municipio)")
 if nro_folio:
     st.info(f"Buscando productos del folio: {nro_folio}...")
     
-    # URL estándar de transacciones
-    url = "https://api.boxhero.io/v1/transactions"
+    # URL OFICIAL de BoxHero para historial
+    url = "https://api.boxhero.io/v1/history"
     
     try:
-        # Pedimos los últimos movimientos
         response = requests.get(url, headers=HEADERS)
         
         if response.status_code == 200:
             movimientos = response.json()
             
-            # Buscamos 'municipio' en el historial
+            # Buscamos 'municipio' en las notas o referencias
             encontrado = None
             for m in movimientos:
-                # Revisamos Nota, Referencia o ID
-                texto_busqueda = (str(m.get('note', '')) + str(m.get('reference', ''))).lower()
-                if nro_folio.lower() in texto_busqueda:
+                # Combinamos nota y referencia para buscar
+                info_transaccion = (str(m.get('note', '')) + str(m.get('reference', ''))).lower()
+                if nro_folio.lower() in info_transaccion:
                     encontrado = m
                     break
             
             if encontrado:
                 st.success(f"✅ Folio Localizado")
-                st.write("### Lista de productos cargados:")
+                st.write(f"*Fecha:* {encontrado.get('created_at')[:10]}")
+                st.write("### Productos a validar:")
                 
-                # Mostramos los productos de esa salida
+                # Mostramos los productos de esa salida específica
                 for item in encontrado.get('items', []):
-                    nombre = item.get('name', 'Producto sin nombre')
-                    cant = item.get('quantity', 0)
-                    st.write(f"⬜ *{nombre}* | Cantidad: {cant}")
+                    st.write(f"⬜ *{item.get('name')}* | Cantidad: {item.get('quantity')}")
                 
                 st.divider()
-                st.subheader("Paso 2: Validación física")
-                st.text_input("Escanea el producto para marcar check")
+                st.subheader("Paso 2: Escaneo de verificación")
+                st.text_input("Escanea el producto para marcar")
             else:
-                st.warning(f"⚠️ No encontré '{nro_folio}' en las salidas recientes. Verifica que esté escrito igual en BoxHero.")
+                st.warning(f"⚠️ No encontré el folio '{nro_folio}' en las salidas recientes.")
         else:
-            st.error(f"Error {response.status_code}: Revisa los permisos de tu API en BoxHero.")
+            st.error(f"Error {response.status_code}: La dirección de BoxHero falló. Probaremos otra ruta si esto sigue.")
             
     except Exception as e:
         st.error(f"Error de conexión: {e}")
-

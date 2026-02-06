@@ -1,70 +1,54 @@
 import streamlit as st
 import requests
 
-# 1. Configuración de la página
 st.set_page_config(page_title="MOVI - Validador", page_icon="📦")
-st.title("📦 MOVI: Verificador de Folios")
+st.title("📦 MOVI: Verificador de Ventas")
 
-# 2. Credenciales (Token confirmado)
+# 1. Datos Maestros (Sacados de tu foto)
 TOKEN = "7af32261-1ee8-4d53-b1b5-77afb233d446"
-HEADERS = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
-}
+TEAM_ID = "314955" 
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
-# 3. Entrada del Folio
-nro_folio = st.text_input("Ingresa el Folio de la salida (ej: municipio)")
+# 2. Entrada del Folio
+nro_folio = st.text_input("Ingresa el nombre del Folio (ej: MUNICIPIO)")
 
 if nro_folio:
-    st.info(f"Buscando productos del folio: {nro_folio}...")
+    st.info(f"Buscando Orden de Venta: {nro_folio}...")
     
-    # URL UNIVERSAL para historial de movimientos en BoxHero
-    url = "https://api.boxhero.io/v1/history"
+    # URL específica para Órdenes de Venta
+    url = f"https://api.boxhero.io/v1/teams/{TEAM_ID}/orders"
     
     try:
         response = requests.get(url, headers=HEADERS)
         
         if response.status_code == 200:
-            movimientos = response.json()
+            ventas = response.json()
+            # Buscamos la orden que coincida con el nombre o nota
+            orden = next((o for o in ventas if nro_folio.upper() in str(o.get('name', '')).upper() or nro_folio.lower() in str(o.get('note', '')).lower()), None)
             
-            # Buscamos 'municipio' en las notas o referencias
-            encontrado = None
-            for m in movimientos:
-                # Revisamos nota y referencia
-                contenido = (str(m.get('note', '')) + str(m.get('reference', ''))).lower()
-                if nro_folio.lower() in contenido:
-                    encontrado = m
-                    break
-            
-            if encontrado:
-                st.success(f"✅ Folio Localizado")
-                st.write(f"*Fecha:* {encontrado.get('created_at')[:10]}")
-                st.write("### Productos que deben venir:")
+            if orden:
+                st.success(f"✅ Orden Encontrada: {orden.get('name')}")
+                st.write(f"*Estado:* {orden.get('status_text')}")
+                st.write("### Productos en esta orden:")
                 
-                # Listamos los productos de esa salida
-                for item in encontrado.get('items', []):
-                    # Buscamos el nombre del producto
-                    nombre = item.get('name', 'Producto')
-                    cantidad = item.get('quantity', 0)
-                    st.write(f"⬜ *{nombre}* | Cantidad: {cantidad}")
+                # Para ver los productos de una orden, a veces hay que consultar el detalle
+                order_id = orden.get('id')
+                url_det = f"https://api.boxhero.io/v1/teams/{TEAM_ID}/orders/{order_id}"
+                res_det = requests.get(url_det, headers=HEADERS)
+                
+                if res_det.status_code == 200:
+                    detalles = res_det.json()
+                    for item in detalles.get('items', []):
+                        st.write(f"⬜ *{item.get('name')}* | Cantidad: {item.get('quantity')}")
+                        st.caption(f"Código: {item.get('barcode')}")
                 
                 st.divider()
-                st.subheader("Paso 2: Validación")
-                st.text_input("Escanea el producto físico para marcarlo")
+                st.subheader("Paso 2: Escanea para validar")
+                st.text_input("Escanea el producto físico")
             else:
-                st.warning(f"⚠️ No encontré '{nro_folio}' en las salidas recientes. Revisa que esté escrito igual en BoxHero.")
-        
-        # SI DA 404, INTENTAMOS LA RUTA ALTERNA AUTOMÁTICAMENTE
-        elif response.status_code == 404:
-            url_alt = "https://api.boxhero.io/v1/transactions"
-            res_alt = requests.get(url_alt, headers=HEADERS)
-            if res_alt.status_code == 200:
-                st.write("Conectado por ruta alterna...")
-                # (Repetir lógica de búsqueda aquí si es necesario)
-            else:
-                st.error("❌ Error 404: BoxHero no reconoce la dirección. Contacta a soporte de API.")
+                st.warning(f"⚠️ No encontré la orden '{nro_folio}'. Revisa que esté en 'Ventas'.")
         else:
-            st.error(f"Error {response.status_code}: Revisa los permisos de tu TOKEN.")
+            st.error(f"Error {response.status_code}. Verifica los permisos de Ventas en tu API.")
             
     except Exception as e:
         st.error(f"Error de conexión: {e}")

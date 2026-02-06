@@ -29,12 +29,13 @@ HEADERS = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json
 BASE_URL = "https://api.boxhero.io/v1"
 
 
-    scanned_code = st.text_input("2. Escanee el Código de Barras del producto")
+scanned_code = st.text_input("2. Escanee el Código de Barras del producto")
     
     if scanned_code:
         # Aquí es donde el programa hace la magia de comparar cantidades
         st.warning(f"Validando {scanned_code}... Espere un momento.")
         # El resto del código de validación lo agregaremos cuando veas que este abre bien.
+
 
 
 

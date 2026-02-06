@@ -16,6 +16,13 @@ BASE_URL = "https://api.boxhero.io/v1"
 # Interfaz del empleado
 nro_factura = st.text_input("1. Ingrese o escanee el Folio de Factura")
 
+# Esto activa la cámara en el celular
+foto_factura = st.camera_input("O escanea el Folio con tu cámara")
+
+# Si el empleado toma una foto, usamos ese dato
+if foto_factura:
+    st.write("¡Folio capturado!")
+
 if nro_factura:
     st.info(f"Conectado a BoxHero. Buscando datos de: {nro_factura}")
     
@@ -25,6 +32,10 @@ if nro_factura:
         # Aquí es donde el programa hace la magia de comparar cantidades
         st.warning(f"Validando {scanned_code}... Espere un momento.")
         # El resto del código de validación lo agregaremos cuando veas que este abre bien.
+
+
+
+
 
 
 

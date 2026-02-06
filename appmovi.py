@@ -1,51 +1,47 @@
 import streamlit as st
 import requests
 
-# 1. Configuración de la página
 st.set_page_config(page_title="MOVI - Validador", page_icon="📦")
-st.title("📦 MOVI: Control de Devoluciones")
+st.title("📦 MOVI: Verificador de Folios")
 
-# 2. Llaves de acceso
+# 1. Llaves de acceso
 TOKEN = "7af32261-1ee8-4d53-b1b5-77afb233d446"
-HEADERS = {
-    "Authorization": "Bearer " + TOKEN,
-    "Content-Type": "application/json"
-}
+HEADERS = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
 
-# 3. Entrada de Folio
-foto_factura = st.camera_input("Escanea el Folio con tu cámara")
-nro_factura = st.text_input("O ingresa el Folio manualmente")
+# 2. Entrada de Folio
+nro_folio = st.text_input("Ingresa el Folio de la salida (ej: FOLIO-001)")
 
-if foto_factura or nro_factura:
-    st.success("¡Folio detectado!")
-
-# 4. Búsqueda de Producto
-scanned_code = st.text_input("Escriba o escanee el Código de Barras del producto")
-
-if scanned_code:
-    st.info(f"Buscando '{scanned_code}' en BoxHero...")
+if nro_folio:
+    st.info(f"Buscando productos asociados al folio: {nro_folio}...")
     
-    # URL CORREGIDA: Usamos el filtro de barcode correctamente
-    url = f"https://api.boxhero.io/v1/items?barcode={scanned_code}"
+    # URL para buscar en el historial de transacciones
+    url_transacciones = "https://api.boxhero.io/v1/transactions"
     
     try:
-        response = requests.get(url, headers=HEADERS)
-        
-        if response.status_code == 200:
-            datos = response.json()
-            # BoxHero devuelve una lista, revisamos si tiene algo
-            if isinstance(datos, list) and len(datos) > 0:
-                p = datos[0]
-                st.balloons() # ¡Festejo!
-                st.markdown(f"## ✅ {p.get('name')}")
-                st.metric("Stock disponible", p.get('quantity'))
-                if p.get('price'):
-                    st.write(f"*Precio:* ${p.get('price')}")
-            else:
-                st.error("❌ Código no encontrado. Revisa si el producto existe en BoxHero.")
-        else:
-            st.error(f"❌ Error {response.status_code}: Revisa la configuración del TOKEN.")
+        # Buscamos transacciones que coincidan con el folio
+        res = requests.get(url_transacciones, headers=HEADERS)
+        if res.status_code == 200:
+            movimientos = res.json()
+            # Filtramos por el folio que escribiste en la nota o referencia
+            transaccion = next((t for t in movimientos if nro_folio in str(t.get('note', '')) or nro_folio in str(t.get('reference', ''))), None)
             
+            if transaccion:
+                st.success(f"✅ Folio encontrado. Fecha: {transaccion.get('created_at')[:10]}")
+                
+                # Listamos los productos que salieron en ese movimiento
+                st.write("### Productos que deben venir:")
+                for item in transaccion.get('items', []):
+                    st.write(f"* *{item.get('name')}* - Cantidad: {item.get('quantity')}")
+                
+                st.divider()
+                st.subheader("Ahora escanea para validar:")
+                scan = st.text_input("Escanea producto físico")
+                if scan:
+                    st.warning("Validando contra la lista...")
+            else:
+                st.error("❌ No encontramos ninguna salida con ese folio en BoxHero.")
+        else:
+            st.error("Error al conectar con el historial. Revisa el TOKEN.")
     except Exception as e:
-        st.error(f"Error inesperado: {e}")
+        st.error(f"Error: {e}")
 
